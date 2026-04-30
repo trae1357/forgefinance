@@ -9,6 +9,7 @@ export default function Home() {
   const [fileName, setFileName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [investments, setInvestments] = useState<any[]>([]);
   const supabase = createClientComponentClient();
 
@@ -17,7 +18,17 @@ export default function Home() {
 
   const categories = ['Beer', 'Vapes', 'Gambling', 'Dating', 'Food', 'Gas', 'Groceries', 'Women\'s Stuff', 'Investing', 'Other'];
 
+  // Auto-detect Premium after successful Stripe payment
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true') {
+        setIsPremium(true);
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -26,6 +37,16 @@ export default function Home() {
     };
     loadData();
   }, [supabase]);
+
+  // PWA Install Prompt
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -116,122 +137,21 @@ export default function Home() {
     a.click();
   };
 
+  const handleInstallClick = () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      setInstallPrompt(null);
+    } else {
+      alert('📲 On mobile: tap the Share button → "Add to Home Screen"');
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-yellow-400">🔥 ForgeFinance</h1>
-          <div className="flex items-center gap-4">
-            <button onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })} className="bg-white text-zinc-950 px-5 py-2 rounded-2xl font-medium text-sm">Sign in</button>
-            {!isPremium && (
-              <button onClick={handleUpgrade} className="bg-yellow-400 text-zinc-950 px-6 py-2 rounded-2xl font-bold">Upgrade — $4.99/mo</button>
-            )}
-            {isPremium && <span className="text-green-400 font-medium">✅ Premium</span>}
-          </div>
-        </div>
-
-        {/* Upload */}
-        <div className="bg-zinc-900 rounded-3xl p-8 mb-8 border border-zinc-800">
-          <h2 className="text-2xl font-semibold mb-2">Upload Bank CSV</h2>
-          <p className="text-zinc-400 mb-6">Any bank export works</p>
-          <label className="block w-full border-2 border-dashed border-yellow-400 hover:border-yellow-300 rounded-3xl p-12 text-center cursor-pointer transition-colors">
-            <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
-            <span className="text-3xl mb-3 block">📤</span>
-            <span className="text-xl font-medium">Click to upload CSV</span>
-            {fileName && <p className="text-green-400 mt-6">✅ {fileName}</p>}
-          </label>
-
-          {transactions.length > 0 && (
-            <div className="flex gap-4 mt-8">
-              <button onClick={saveToDatabase} disabled={isSaving} className="flex-1 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-zinc-950 font-bold py-5 rounded-3xl">
-                {isSaving ? 'Saving...' : '💾 Save Forever'}
-              </button>
-              <button onClick={exportCSV} className="flex-1 border border-zinc-400 text-white font-medium py-5 rounded-3xl">📤 Export CSV</button>
-            </div>
-          )}
-        </div>
-
-        {transactions.length > 0 && (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
-                <h3 className="text-xl font-semibold mb-6">Your Vice Breakdown</h3>
-                <div className="space-y-5">
-                  {categories.map(cat => {
-                    const amount = transactions.filter(t => t.category === cat).reduce((sum, t) => sum + Math.abs(t.amount), 0);
-                    const percent = totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0;
-                    return (
-                      <div key={cat} className="flex items-center gap-4">
-                        <div className="w-32 text-sm font-medium">{cat}</div>
-                        <div className="flex-1 h-3 bg-zinc-800 rounded-3xl overflow-hidden">
-                          <div className="h-full bg-yellow-400" style={{ width: `${percent}%` }} />
-                        </div>
-                        <div className="font-mono w-20 text-right">${amount.toFixed(0)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800 flex flex-col">
-                <h3 className="text-xl font-semibold mb-4">Bro Roast</h3>
-                <p className="text-2xl leading-tight flex-1">
-                  You spent <span className="text-yellow-400">$${totalSpent.toFixed(0)}</span> this month.<br />
-                  {transactions.filter(t => t.category === 'Beer').length > 2 ? 'Those beers are stacking up, king 💀' : 'You\'re forging ahead.'}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800 mb-8">
-              <h3 className="text-xl font-semibold mb-6">Recent Transactions ({transactions.length})</h3>
-              <div className="max-h-96 overflow-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-zinc-700 text-zinc-400">
-                      <th className="text-left pb-4">Date</th>
-                      <th className="text-left pb-4">Description</th>
-                      <th className="text-left pb-4">Category</th>
-                      <th className="text-right pb-4">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {transactions.slice(0, 15).map((t, i) => (
-                      <tr key={i} className="border-b border-zinc-800 last:border-none">
-                        <td className="py-4 text-zinc-400 font-mono">{t.date}</td>
-                        <td className="py-4">{t.description}</td>
-                        <td className="py-4"><span className="px-4 py-1 bg-zinc-800 text-yellow-300 text-xs rounded-2xl">{t.category}</span></td>
-                        <td className="py-4 text-right font-mono text-red-400">-${Math.abs(t.amount).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Investments */}
-        <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold">Investments • Stocks &amp; Crypto</h3>
-            <button onClick={addInvestment} className="bg-green-500 text-black px-6 py-3 rounded-2xl text-sm font-bold">+ Add</button>
-          </div>
-          {investments.length > 0 ? (
-            investments.map((inv, i) => (
-              <div key={i} className="flex justify-between py-4 border-b border-zinc-800 last:border-none">
-                <span className="font-mono">{inv.ticker}</span>
-                <span className="font-bold text-green-400">${inv.value}</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-zinc-400">Add your Robinhood / Coinbase holdings here</p>
-          )}
-        </div>
-
-        <div className="mt-12 text-center text-xs text-zinc-500">
-          PWA ready — on your phone tap Share → "Add to Home Screen"
-        </div>
-      </div>
-    </div>
-  );
-}
+        <div className="flex justify-between items
