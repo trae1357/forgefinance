@@ -18,13 +18,11 @@ export default function Home() {
 
   const categories = ['Beer', 'Vapes', 'Gambling', 'Dating', 'Food', 'Gas', 'Groceries', 'Women\'s Stuff', 'Investing', 'Other'];
 
-  // Auto-detect Premium after successful Stripe payment
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('success') === 'true') {
         setIsPremium(true);
-        // Clean URL
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
@@ -38,12 +36,8 @@ export default function Home() {
     loadData();
   }, [supabase]);
 
-  // PWA Install Prompt
   useEffect(() => {
-    const handler = (e: any) => {
-      e.preventDefault();
-      setInstallPrompt(e);
-    };
+    const handler = (e: any) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
@@ -142,7 +136,7 @@ export default function Home() {
       installPrompt.prompt();
       setInstallPrompt(null);
     } else {
-      alert('📲 On mobile: tap the Share button → "Add to Home Screen"');
+      alert('📲 On mobile: tap Share → "Add to Home Screen"');
     }
   };
 
@@ -154,4 +148,38 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-yellow-400">🔥 ForgeFinance</h1>
+          <div className="flex items-center gap-4">
+            <button onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })} className="bg-white text-zinc-950 px-5 py-2 rounded-2xl font-medium text-sm">Sign in</button>
+            {!isPremium && <button onClick={handleUpgrade} className="bg-yellow-400 text-zinc-950 px-6 py-2 rounded-2xl font-bold">Upgrade — $4.99/mo</button>}
+            {isPremium && <span className="text-green-400 font-medium">✅ Premium</span>}
+            <button onClick={handleLogout} className="text-zinc-400 text-sm">Logout</button>
+          </div>
+        </div>
+
+        {/* Upload Box - ALWAYS visible */}
+        <div className="bg-zinc-900 rounded-3xl p-8 mb-8 border border-zinc-800">
+          <h2 className="text-2xl font-semibold mb-2">Upload Bank CSV</h2>
+          <p className="text-zinc-400 mb-6">Chase • Amex • Wells Fargo • any bank CSV works</p>
+          <label className="block w-full border-2 border-dashed border-yellow-400 hover:border-yellow-300 rounded-3xl p-12 text-center cursor-pointer transition-colors">
+            <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+            <span className="text-3xl mb-3 block">📤</span>
+            <span className="text-xl font-medium">Click to upload CSV</span>
+            {fileName && <p className="text-green-400 mt-6">✅ {fileName}</p>}
+          </label>
+
+          {transactions.length > 0 && (
+            <div className="flex gap-4 mt-8">
+              <button onClick={saveToDatabase} disabled={isSaving} className="flex-1 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-zinc-950 font-bold py-5 rounded-3xl">
+                {isSaving ? 'Saving...' : '💾 Save Forever'}
+              </button>
+              <button onClick={exportCSV} className="flex-1 border border-zinc-400 text-white font-medium py-5 rounded-3xl">📤 Export CSV</button>
+            </div>
+          )}
+        </div>
+
+        {transactions.length === 0 && (
+          <div className="text-center py-12 text-zinc-400">
+            <p className="text-2xl">No transactions yet</p>
+            <p className="mt
