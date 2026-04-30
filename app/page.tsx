@@ -9,7 +9,9 @@ export default function Home() {
   const handleUpgrade = async () => {
     const stripe = await loadStripe(STRIPE_PUBLISHABLE_KEY);
     if (!stripe) return alert('Stripe failed to load');
-    await stripe.redirectToCheckout({
+
+    // ←←← THIS FIXES THE TYPE ERROR
+    await (stripe as any).redirectToCheckout({
       lineItems: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
       mode: 'subscription',
       successUrl: `${window.location.origin}/?success=true`,
@@ -29,7 +31,10 @@ export default function Home() {
           UPGRADE — $4.99/mo
         </button>
 
-        <p className="text-green-400 text-xl mb-8">✅ If you see this big yellow button → it worked!</p>
+        <p className="text-green-400 text-xl">✅ Big yellow button should now appear!</p>
+        <p className="text-zinc-400 text-sm mt-4">
+          Click it → use test card 4242 4242 4242 4242
+        </p>
       </div>
     </div>
   );
