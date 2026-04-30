@@ -22,7 +22,6 @@ export default function Home() {
       <div className="max-w-md w-full text-center">
         <h1 className="text-5xl font-bold text-yellow-400 mb-8">🔥 ForgeFinance</h1>
         
-        {/* FORCED TEST BUTTON - BIG AND ALWAYS VISIBLE */}
         <button
           onClick={handleUpgrade}
           className="block w-full bg-yellow-400 hover:bg-yellow-300 text-zinc-950 text-3xl font-bold py-8 px-8 rounded-3xl mb-12 shadow-2xl"
@@ -30,12 +29,7 @@ export default function Home() {
           UPGRADE — $4.99/mo
         </button>
 
-        <p className="text-green-400 text-xl mb-8">✅ If you see this big yellow button → the fix worked!</p>
-        
-        <p className="text-zinc-400 text-sm">
-          Click it → use test card 4242 4242 4242 4242<br />
-          (any future date, any 3-digit CVC)
-        </p>
+        <p className="text-green-400 text-xl mb-8">✅ If you see this big yellow button → it worked!</p>
       </div>
     </div>
   );
