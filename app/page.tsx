@@ -14,7 +14,6 @@ export default function Home() {
 
   const categories = ['Beer', 'Vapes', 'Gambling', 'Dating', 'Food', 'Gas', 'Groceries', 'Women\'s Stuff', 'Investing', 'Other'];
 
-  // Load/save from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('forgefinance_transactions');
     if (saved) setTransactions(JSON.parse(saved));
@@ -49,15 +48,10 @@ export default function Home() {
 
   const categorize = (desc: string, merchant: string) => {
     const lower = (desc + ' ' + merchant).toLowerCase();
-    if (lower.includes('beer') || lower.includes('liquor') || lower.includes('bar') || lower.includes('brew')) return 'Beer';
-    if (lower.includes('vape') || lower.includes('smoke') || lower.includes('cig') || lower.includes('juul')) return 'Vapes';
-    if (lower.includes('casino') || lower.includes('bet') || lower.includes('draftkings') || lower.includes('fanduel')) return 'Gambling';
-    if (lower.includes('tinder') || lower.includes('hinge') || lower.includes('bumble') || lower.includes('date') || lower.includes('onlyfans')) return 'Dating';
-    if (lower.includes('nail') || lower.includes('salon') || lower.includes('starbucks') || lower.includes('latte')) return 'Women\'s Stuff';
-    if (lower.includes('food') || lower.includes('restaurant') || lower.includes('mcdonald')) return 'Food';
-    if (lower.includes('gas') || lower.includes('shell') || lower.includes('chevron')) return 'Gas';
-    if (lower.includes('grocery') || lower.includes('walmart') || lower.includes('costco')) return 'Groceries';
-    if (lower.includes('stock') || lower.includes('robinhood') || lower.includes('coinbase') || lower.includes('crypto')) return 'Investing';
+    if (lower.includes('beer') || lower.includes('liquor') || lower.includes('bar')) return 'Beer';
+    if (lower.includes('vape') || lower.includes('smoke')) return 'Vapes';
+    if (lower.includes('casino') || lower.includes('bet')) return 'Gambling';
+    if (lower.includes('tinder') || lower.includes('date')) return 'Dating';
     return 'Other';
   };
 
@@ -75,51 +69,61 @@ export default function Home() {
   };
 
   const addManualEntry = () => {
-    const date = prompt('Date (YYYY-MM-DD):') || new Date().toISOString().split('T')[0];
-    const desc = prompt('Description:') || '';
-    const amount = parseFloat(prompt('Amount:') || '0');
-    const cat = prompt('Category (Beer, Vapes, Gambling, etc.):') || 'Other';
+    const date = prompt('Date (YYYY-MM-DD)') || '';
+    const desc = prompt('Description') || '';
+    const amountStr = prompt('Amount') || '0';
+    const amount = parseFloat(amountStr);
+    const cat = prompt('Category') || 'Other';
     if (desc && amount) {
-      setTransactions([{ date, description: desc, amount, merchant: '', category: cat }, ...transactions]);
+      setTransactions([{ date, description: desc, amount: -amount, merchant: '', category: cat }, ...transactions]);
     }
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', bg: 'from-zinc-950 to-black' },
-    { id: 'breakdown', label: 'Vice Breakdown', bg: 'from-red-950 to-amber-950' },
-    { id: 'transactions', label: 'Transactions', bg: 'from-zinc-950 to-black' },
-    { id: 'investments', label: 'Investments', bg: 'from-emerald-950 to-green-950' },
-    { id: 'income', label: 'Income', bg: 'from-emerald-950 to-teal-950' },
-    { id: 'bills', label: 'Bills', bg: 'from-rose-950 to-red-950' },
-    { id: 'goals', label: 'Goals', bg: 'from-amber-950 to-yellow-950' },
-    { id: 'reports', label: 'Reports', bg: 'from-zinc-950 to-black' },
-  ] as const;
+  const tabConfig = {
+    overview: { label: 'Overview', bg: 'from-zinc-950 via-black to-zinc-900' },
+    breakdown: { label: 'Vice Breakdown', bg: 'from-red-950 via-amber-900 to-red-950' },
+    transactions: { label: 'Transactions', bg: 'from-zinc-950 via-black to-zinc-900' },
+    investments: { label: 'Investments', bg: 'from-emerald-950 via-green-900 to-teal-950' },
+    income: { label: 'Income', bg: 'from-emerald-950 via-teal-900 to-cyan-950' },
+    bills: { label: 'Bills', bg: 'from-rose-950 via-red-900 to-rose-950' },
+    goals: { label: 'Goals', bg: 'from-amber-950 via-yellow-900 to-amber-950' },
+    reports: { label: 'Reports', bg: 'from-zinc-950 via-black to-zinc-900' },
+  };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${tabs.find(t => t.id === activeTab)?.bg} text-white transition-all duration-700`}>
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/60 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-4xl">🔥</span>
-            <h1 className="text-3xl font-bold tracking-tighter text-yellow-400">ForgeFinance</h1>
+    <div className={`min-h-screen bg-gradient-to-br ${tabConfig[activeTab].bg} text-white transition-all duration-700`}>
+      {/* Top Bar */}
+      <div className="bg-black/70 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-x-4">
+            <div className="text-5xl">🔥</div>
+            <h1 className="text-4xl font-black tracking-tighter text-yellow-400">ForgeFinance</h1>
           </div>
-          {!isPremium && (
-            <button onClick={handleUpgrade} className="bg-yellow-400 hover:bg-amber-300 text-zinc-950 font-bold px-8 py-3 rounded-2xl text-sm tracking-wider">
-              UPGRADE — $4.99/MO
-            </button>
-          )}
+
+          <div className="flex items-center gap-x-8">
+            {!isPremium && (
+              <button
+                onClick={handleUpgrade}
+                className="bg-gradient-to-r from-yellow-400 to-amber-300 hover:from-amber-300 hover:to-yellow-400 text-zinc-950 font-bold px-10 py-4 rounded-3xl text-lg shadow-2xl shadow-yellow-500/30 transition-all active:scale-95"
+              >
+                UPGRADE — $4.99/mo
+              </button>
+            )}
+            {isPremium && <div className="text-green-400 font-bold text-xl flex items-center gap-2">✅ PREMIUM</div>}
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="max-w-6xl mx-auto px-6 overflow-x-auto">
-          <div className="flex border-b border-white/10 text-sm font-medium whitespace-nowrap">
-            {tabs.map(tab => (
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="flex gap-x-2 border-b border-white/10 overflow-x-auto pb-1">
+            {Object.entries(tabConfig).map(([key, tab]) => (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-8 py-4 capitalize border-b-2 transition-all ${
-                  activeTab === tab.id ? 'border-yellow-400 text-yellow-400' : 'border-transparent text-zinc-400 hover:text-white'
+                key={key}
+                onClick={() => setActiveTab(key as any)}
+                className={`px-8 py-4 rounded-3xl font-semibold transition-all whitespace-nowrap ${
+                  activeTab === key
+                    ? 'bg-white text-zinc-950 shadow-xl'
+                    : 'text-white hover:bg-white/10'
                 }`}
               >
                 {tab.label}
@@ -129,28 +133,50 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto p-6">
-        {/* Upload always visible */}
-        <div className="bg-black/40 backdrop-blur-md rounded-3xl p-8 border border-white/10 mb-8">
-          <h2 className="text-2xl font-semibold mb-2">Upload Bank CSV</h2>
-          <label className="block w-full border-2 border-dashed border-yellow-400 hover:border-yellow-300 rounded-3xl p-12 text-center cursor-pointer transition-all">
+      <div className="max-w-7xl mx-auto px-8 py-10">
+        {/* Upload Bar */}
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 mb-12 flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold">Upload Bank CSV</h2>
+            <p className="text-white/70">Or add manually below</p>
+          </div>
+          <label className="cursor-pointer bg-white/10 hover:bg-white/20 px-10 py-5 rounded-3xl text-lg font-semibold transition-all flex items-center gap-3">
+            <span>📤</span>
+            <span>Upload CSV</span>
             <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
-            <span className="text-4xl block mb-4">📤</span>
-            <span className="text-xl font-medium">Click or drop CSV</span>
-            {fileName && <p className="text-green-400 mt-6">✅ {fileName}</p>}
           </label>
-          <button onClick={addManualEntry} className="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-4 rounded-2xl font-medium">+ Manually Add Transaction</button>
+          <button onClick={addManualEntry} className="bg-yellow-400 text-zinc-950 px-10 py-5 rounded-3xl font-bold">+ Manual Entry</button>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'overview' && <div className="text-center py-12">Overview + Bro Roast here</div>}
-        {activeTab === 'breakdown' && <div className="text-center py-12">Vice Breakdown with bars here</div>}
-        {activeTab === 'transactions' && <div className="text-center py-12">Full transaction list here</div>}
-        {activeTab === 'investments' && <div className="text-center py-12">Stocks + Crypto portfolio here</div>}
-        {activeTab === 'income' && <div className="text-center py-12">Income tracker + manual add here</div>}
-        {activeTab === 'bills' && <div className="text-center py-12">Bills / recurring here</div>}
-        {activeTab === 'goals' && <div className="text-center py-12">Savings goals & challenges here</div>}
-        {activeTab === 'reports' && <div className="text-center py-12">Monthly reports here</div>}
+        {/* Tab Content Area */}
+        {activeTab === 'overview' && (
+          <div className="text-center">
+            <h1 className="text-6xl font-black tracking-tighter mb-4">Forge Your Future</h1>
+            <p className="text-3xl text-yellow-300 mb-12">Stop leaking money on beer, vapes, and bad decisions.</p>
+            <div className="grid grid-cols-3 gap-6 max-w-4xl mx-auto">
+              <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8">
+                <div className="text-5xl font-bold">${totalSpent.toFixed(0)}</div>
+                <div className="text-white/60">Spent this month</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8">
+                <div className="text-5xl font-bold text-green-400">4</div>
+                <div className="text-white/60">Vice Categories</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8">
+                <div className="text-5xl font-bold">🔥</div>
+                <div className="text-white/60">Bro Roast Level</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'breakdown' && <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center text-3xl">Vice Breakdown (bars + pie coming next)</div>}
+        {activeTab === 'transactions' && <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center text-3xl">Full Transaction List</div>}
+        {activeTab === 'investments' && <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center text-3xl">Stocks + Crypto Portfolio</div>}
+        {activeTab === 'income' && <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center text-3xl">Income Tracker</div>}
+        {activeTab === 'bills' && <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center text-3xl">Bills &amp; Recurring</div>}
+        {activeTab === 'goals' && <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center text-3xl">Savings Goals &amp; Challenges</div>}
+        {activeTab === 'reports' && <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-12 text-center text-3xl">Monthly Reports &amp; Insights</div>}
 
       </div>
     </div>
