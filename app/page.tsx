@@ -14,6 +14,7 @@ export default function Home() {
 
   const categories = ['Beer', 'Vapes', 'Gambling', 'Dating', 'Food', 'Gas', 'Groceries', 'Women\'s Stuff', 'Investing', 'Other'];
 
+  // Load/save from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('forgefinance_transactions');
     if (saved) setTransactions(JSON.parse(saved));
@@ -73,21 +74,31 @@ export default function Home() {
     });
   };
 
+  const addManualEntry = () => {
+    const date = prompt('Date (YYYY-MM-DD):') || new Date().toISOString().split('T')[0];
+    const desc = prompt('Description:') || '';
+    const amount = parseFloat(prompt('Amount:') || '0');
+    const cat = prompt('Category (Beer, Vapes, Gambling, etc.):') || 'Other';
+    if (desc && amount) {
+      setTransactions([{ date, description: desc, amount, merchant: '', category: cat }, ...transactions]);
+    }
+  };
+
   const tabs = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'breakdown', label: 'Vice Breakdown' },
-    { id: 'transactions', label: 'Transactions' },
-    { id: 'investments', label: 'Investments' },
-    { id: 'income', label: 'Income' },
-    { id: 'bills', label: 'Bills' },
-    { id: 'goals', label: 'Goals' },
-    { id: 'reports', label: 'Reports' },
+    { id: 'overview', label: 'Overview', bg: 'from-zinc-950 to-black' },
+    { id: 'breakdown', label: 'Vice Breakdown', bg: 'from-red-950 to-amber-950' },
+    { id: 'transactions', label: 'Transactions', bg: 'from-zinc-950 to-black' },
+    { id: 'investments', label: 'Investments', bg: 'from-emerald-950 to-green-950' },
+    { id: 'income', label: 'Income', bg: 'from-emerald-950 to-teal-950' },
+    { id: 'bills', label: 'Bills', bg: 'from-rose-950 to-red-950' },
+    { id: 'goals', label: 'Goals', bg: 'from-amber-950 to-yellow-950' },
+    { id: 'reports', label: 'Reports', bg: 'from-zinc-950 to-black' },
   ] as const;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className={`min-h-screen bg-gradient-to-br ${tabs.find(t => t.id === activeTab)?.bg} text-white transition-all duration-700`}>
       {/* Header */}
-      <div className="border-b border-zinc-800 bg-zinc-900 sticky top-0 z-50">
+      <div className="border-b border-white/10 bg-black/60 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-4xl">🔥</span>
@@ -100,14 +111,14 @@ export default function Home() {
           )}
         </div>
 
-        {/* Tabs - scrollable on mobile */}
+        {/* Tabs */}
         <div className="max-w-6xl mx-auto px-6 overflow-x-auto">
-          <div className="flex border-b border-zinc-800 text-sm font-medium whitespace-nowrap">
+          <div className="flex border-b border-white/10 text-sm font-medium whitespace-nowrap">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-8 py-4 capitalize border-b-2 transition-colors ${
+                className={`px-8 py-4 capitalize border-b-2 transition-all ${
                   activeTab === tab.id ? 'border-yellow-400 text-yellow-400' : 'border-transparent text-zinc-400 hover:text-white'
                 }`}
               >
@@ -119,33 +130,27 @@ export default function Home() {
       </div>
 
       <div className="max-w-6xl mx-auto p-6">
-        {/* Upload - always visible at top */}
-        <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800 mb-8">
+        {/* Upload always visible */}
+        <div className="bg-black/40 backdrop-blur-md rounded-3xl p-8 border border-white/10 mb-8">
           <h2 className="text-2xl font-semibold mb-2">Upload Bank CSV</h2>
-          <p className="text-zinc-400 mb-6">Drop any bank export here</p>
           <label className="block w-full border-2 border-dashed border-yellow-400 hover:border-yellow-300 rounded-3xl p-12 text-center cursor-pointer transition-all">
             <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
             <span className="text-4xl block mb-4">📤</span>
             <span className="text-xl font-medium">Click or drop CSV</span>
-            {fileName && <p className="text-green-400 mt-6 font-medium">✅ {fileName}</p>}
+            {fileName && <p className="text-green-400 mt-6">✅ {fileName}</p>}
           </label>
+          <button onClick={addManualEntry} className="mt-6 w-full bg-white/10 hover:bg-white/20 text-white py-4 rounded-2xl font-medium">+ Manually Add Transaction</button>
         </div>
 
-        {transactions.length === 0 && activeTab !== 'income' && activeTab !== 'bills' && activeTab !== 'goals' && (
-          <div className="text-center py-20 text-zinc-400">
-            <p className="text-3xl font-medium">Upload a CSV to get started</p>
-          </div>
-        )}
-
         {/* Tab Content */}
-        {activeTab === 'overview' && <div>Overview content coming - Bro Roast here</div>}
-        {activeTab === 'breakdown' && <div>Vice Breakdown content here</div>}
-        {activeTab === 'transactions' && <div>Transactions list here</div>}
-        {activeTab === 'investments' && <div>Stocks + Crypto portfolio here</div>}
-        {activeTab === 'income' && <div>Income tracker here</div>}
-        {activeTab === 'bills' && <div>Bills / recurring here</div>}
-        {activeTab === 'goals' && <div>Goals & challenges here</div>}
-        {activeTab === 'reports' && <div>Reports & insights here</div>}
+        {activeTab === 'overview' && <div className="text-center py-12">Overview + Bro Roast here</div>}
+        {activeTab === 'breakdown' && <div className="text-center py-12">Vice Breakdown with bars here</div>}
+        {activeTab === 'transactions' && <div className="text-center py-12">Full transaction list here</div>}
+        {activeTab === 'investments' && <div className="text-center py-12">Stocks + Crypto portfolio here</div>}
+        {activeTab === 'income' && <div className="text-center py-12">Income tracker + manual add here</div>}
+        {activeTab === 'bills' && <div className="text-center py-12">Bills / recurring here</div>}
+        {activeTab === 'goals' && <div className="text-center py-12">Savings goals & challenges here</div>}
+        {activeTab === 'reports' && <div className="text-center py-12">Monthly reports here</div>}
 
       </div>
     </div>
