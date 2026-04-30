@@ -1,12 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function Home() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [fileName, setFileName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [investments, setInvestments] = useState<any[]>([]);
+  const supabase = createClientComponentClient();
 
   const categories = ['Beer', 'Vapes', 'Gambling', 'Dating', 'Food', 'Gas', 'Groceries', 'Women\'s Stuff', 'Investing', 'Other'];
+
+  // Load saved transactions when page loads
+  useEffect(() => {
+    const loadData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (data) setTransactions(data);
+    };
+    loadData();
+  }, [supabase]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -19,10 +40,9 @@ export default function Home() {
       const rows = text.split('\n').slice(1);
       const parsed = rows
         .filter(row => row.trim() !== '')
-        .map((row, index) => {
+        .map((row) => {
           const cols = row.split(',');
           return {
-            id: index,
             date: cols[0] || '',
             description: cols[1] || '',
             amount: parseFloat(cols[2]) || 0,
@@ -39,7 +59,7 @@ export default function Home() {
     const lower = (desc + ' ' + merchant).toLowerCase();
     if (lower.includes('beer') || lower.includes('liquor') || lower.includes('bar') || lower.includes('brew')) return 'Beer';
     if (lower.includes('vape') || lower.includes('smoke') || lower.includes('cig') || lower.includes('juul')) return 'Vapes';
-    if (lower.includes('casino') || lower.includes('bet') || lower.includes('draftkings') || lower.includes('fanduel') || lower.includes('gambl')) return 'Gambling';
+    if (lower.includes('casino') || lower.includes('bet') || lower.includes('draftkings') || lower.includes('fanduel')) return 'Gambling';
     if (lower.includes('tinder') || lower.includes('hinge') || lower.includes('bumble') || lower.includes('date') || lower.includes('onlyfans')) return 'Dating';
     if (lower.includes('nail') || lower.includes('salon') || lower.includes('starbucks') || lower.includes('latte')) return 'Women\'s Stuff';
     if (lower.includes('food') || lower.includes('restaurant') || lower.includes('mcdonald')) return 'Food';
@@ -49,44 +69,96 @@ export default function Home() {
     return 'Other';
   };
 
+  const saveToDatabase = async () => {
+    setIsSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert('Please sign in with Google first (top right button)');
+      setIsSaving(false);
+      return;
+    }
+
+    const transactionsToSave = transactions.map(t => ({
+      user_id: user.id,
+      date: t.date,
+      description: t.description,
+      amount: t.amount,
+      category: t.category,
+      merchant: t.merchant || ''
+    }));
+
+    const { error } = await supabase.from('transactions').insert(transactionsToSave);
+    if (error) {
+      console.error(error);
+      alert('Error saving — check console');
+    } else {
+      alert('✅ Saved to ForgeFinance forever!');
+    }
+    setIsSaving(false);
+  };
+
   const totalSpent = transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  const addInvestment = () => {
+    const ticker = prompt('Enter stock or crypto ticker (e.g. AAPL, BTC, TSLA):');
+    if (!ticker) return;
+    const valueStr = prompt('Current approximate value in $ ?');
+    const value = parseFloat(valueStr || '0');
+    setInvestments([...investments, { ticker: ticker.toUpperCase(), value }]);
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-yellow-400 flex items-center gap-3">
-            🔥 ForgeFinance
-          </h1>
-          <div className="text-sm text-zinc-400">Welcome back, Trae</div>
+          <h1 className="text-4xl font-bold text-yellow-400 flex items-center gap-3">🔥 ForgeFinance</h1>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })} 
+              className="bg-white text-zinc-950 px-5 py-2 rounded-2xl font-medium text-sm hover:bg-yellow-300"
+            >
+              Sign in with Google
+            </button>
+            <div className="text-xs text-zinc-500">Free • $4.99/mo later</div>
+          </div>
         </div>
 
+        {/* CSV Upload */}
         <div className="bg-zinc-900 rounded-3xl p-8 mb-8 border border-zinc-800">
-          <h2 className="text-2xl font-semibold mb-2">Upload Your Bank CSV</h2>
-          <p className="text-zinc-400 mb-6">Chase • Amex • Wells Fargo • any bank CSV works</p>
+          <h2 className="text-2xl font-semibold mb-2">Upload Bank CSV</h2>
+          <p className="text-zinc-400 mb-6">Chase, Amex, Wells Fargo — any CSV works</p>
           
-          <label className="block w-full border-2 border-dashed border-yellow-400 hover:border-yellow-300 rounded-3xl p-12 text-center cursor-pointer transition">
+          <label className="block w-full border-2 border-dashed border-yellow-400 hover:border-yellow-300 rounded-3xl p-12 text-center cursor-pointer transition-colors">
             <input type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
-            <span className="text-2xl block mb-2">📤</span>
-            <span className="text-xl font-medium">Click to upload CSV file</span>
-            {fileName && <p className="text-green-400 mt-6 text-sm">✅ {fileName}</p>}
+            <span className="text-3xl mb-3 block">📤</span>
+            <span className="text-xl font-medium">Click or drop CSV here</span>
+            {fileName && <p className="text-green-400 mt-6">✅ {fileName}</p>}
           </label>
+
+          {transactions.length > 0 && (
+            <button
+              onClick={saveToDatabase}
+              disabled={isSaving}
+              className="mt-8 w-full bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 text-zinc-950 font-bold py-5 rounded-3xl text-lg"
+            >
+              {isSaving ? 'Saving to database...' : '💾 Save Transactions Forever'}
+            </button>
+          )}
         </div>
 
         {transactions.length > 0 && (
           <>
+            {/* Vice Breakdown + Roast */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
                 <h3 className="text-xl font-semibold mb-6">Your Vice Breakdown</h3>
                 <div className="space-y-5">
                   {categories.map(cat => {
-                    const amount = transactions
-                      .filter(t => t.category === cat)
-                      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+                    const amount = transactions.filter(t => t.category === cat).reduce((sum, t) => sum + Math.abs(t.amount), 0);
                     const percent = totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0;
                     return (
                       <div key={cat} className="flex items-center gap-4">
-                        <div className="w-32 font-medium text-sm">{cat}</div>
+                        <div className="w-32 text-sm font-medium">{cat}</div>
                         <div className="flex-1 h-3 bg-zinc-800 rounded-3xl overflow-hidden">
                           <div className="h-full bg-yellow-400 transition-all" style={{ width: `${percent}%` }} />
                         </div>
@@ -107,7 +179,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+            {/* Transactions List */}
+            <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800 mb-8">
               <h3 className="text-xl font-semibold mb-6">Recent Transactions ({transactions.length})</h3>
               <div className="max-h-96 overflow-auto">
                 <table className="w-full text-sm">
@@ -120,16 +193,12 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.slice(0, 15).map((t) => (
-                      <tr key={t.id} className="border-b border-zinc-800 last:border-none hover:bg-zinc-800/50">
+                    {transactions.slice(0, 15).map((t, i) => (
+                      <tr key={i} className="border-b border-zinc-800 last:border-none hover:bg-zinc-800/50">
                         <td className="py-4 text-zinc-400 font-mono">{t.date}</td>
                         <td className="py-4">{t.description}</td>
-                        <td className="py-4">
-                          <span className="inline-block px-4 py-1 bg-zinc-800 text-yellow-300 text-xs rounded-2xl">{t.category}</span>
-                        </td>
-                        <td className="py-4 text-right font-mono text-red-400">
-                          -${Math.abs(t.amount).toFixed(2)}
-                        </td>
+                        <td className="py-4"><span className="px-4 py-1 bg-zinc-800 text-yellow-300 text-xs rounded-2xl">{t.category}</span></td>
+                        <td className="py-4 text-right font-mono text-red-400">-${Math.abs(t.amount).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -138,7 +207,30 @@ export default function Home() {
             </div>
           </>
         )}
-      </div>
-    </div>
-  );
-}
+
+        {/* Investment Tracker */}
+        <div className="bg-zinc-900 rounded-3xl p-8 border border-zinc-800">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold">Investments • Stocks &amp; Crypto</h3>
+            <button 
+              onClick={addInvestment}
+              className="bg-green-500 text-black px-6 py-3 rounded-2xl text-sm font-bold hover:bg-green-400"
+            >
+              + Add
+            </button>
+          </div>
+          {investments.length > 0 ? (
+            <div className="space-y-3">
+              {investments.map((inv, i) => (
+                <div key={i} className="flex justify-between items-center bg-zinc-950 px-5 py-4 rounded-2xl">
+                  <span className="font-mono text-lg">{inv.ticker}</span>
+                  <span className="font-bold text-green-400">${inv.value.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-zinc-400 italic">Add your Robinhood, Coinbase, or brokerage holdings here.</p>
+          )}
+        </div>
+
+        <div className="mt
